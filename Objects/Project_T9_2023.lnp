@@ -1,0 +1,26 @@
+--cpu Cortex-M3
+".\objects\spi.o"
+".\objects\rfid_rc522.o"
+".\objects\tim.o"
+".\objects\usart.o"
+".\objects\main.o"
+".\objects\ccsbcs.o"
+".\objects\diskio.o"
+".\objects\fatfs.o"
+".\objects\fatfs_sd_card.o"
+".\objects\ff.o"
+".\objects\ff_gen_drv.o"
+".\objects\syscall.o"
+".\objects\user_diskio.o"
+".\objects\misc.o"
+".\objects\stm32f10x_gpio.o"
+".\objects\stm32f10x_rcc.o"
+".\objects\stm32f10x_spi.o"
+".\objects\stm32f10x_tim.o"
+".\objects\stm32f10x_usart.o"
+".\objects\startup_stm32f10x_md.o"
+".\objects\system_stm32f10x.o"
+--strict --scatter ".\Objects\Project_T9_2023.sct"
+--summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
+--info sizes --info totals --info unused --info veneers
+--list ".\Listings\Project_T9_2023.map" -o .\Objects\Project_T9_2023.axf

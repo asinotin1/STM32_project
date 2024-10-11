@@ -1,0 +1,39 @@
+Dependencies for Project 'Project_T9_2023', Target 'User': (DO NOT MODIFY !)
+CompilerVersion: 5060750::V5.06 update 6 (build 750)::.\ARMCC
+F (.\inc\RFID_RC522.h)(0x65DC0DE6)()
+F (.\inc\spi.h)(0x65DC0566)()
+F (.\inc\tim.h)(0x65DC0E8A)()
+F (.\inc\usart.h)(0x65DC0AFC)()
+F (.\inc\main.h)(0x65DC09CA)()
+F (.\src\spi.c)(0x65DBAB16)(--c99 -c --cpu Cortex-M3 -g -O0 --apcs=interwork --split_sections -I .\inc -I .\src -I .\fatfs\Inc-I.\RTE\Device\STM32F103C8-I.\RTE\_User-IC:\Users\HP\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include-IC:\Users\HP\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include-IC:\Users\HP\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\StdPeriph_Driver\inc-D__UVISION_VERSION="531" -D_RTE_ -DSTM32F10X_MD -D_RTE_-o .\objects\spi.o --omf_browse .\objects\spi.crf --depend .\objects\spi.d)
+I (.\inc\spi.h)(0x65DC67D6)
+F (.\src\RFID_RC522.c)(0x65DC13B2)()
+F (.\src\tim.c)(0x65DC06DE)()
+F (.\src\usart.c)(0x65DC05B4)()
+F (.\src\main.c)(0x65DECA45)()
+F (.\fatfs\Inc\diskio.h)(0x65960C86)()
+F (.\fatfs\Inc\fatfs.h)(0x65960C86)()
+F (.\fatfs\Inc\fatfs_sd_card.h)(0x65960C86)()
+F (.\fatfs\Inc\ff.h)(0x65960C86)()
+F (.\fatfs\Inc\ff_gen_drv.h)(0x65960C86)()
+F (.\fatfs\Inc\ffconf.h)(0x65960C86)()
+F (.\fatfs\Inc\integer.h)(0x65960C86)()
+F (.\fatfs\Inc\user_diskio.h)(0x65960C86)()
+F (.\fatfs\Src\ccsbcs.c)(0x65960C86)()
+F (.\fatfs\Src\diskio.c)(0x65960C86)()
+F (.\fatfs\Src\fatfs.c)(0x65DC05B4)()
+F (.\fatfs\Src\fatfs_sd_card.c)(0x65DBA9D8)()
+F (.\fatfs\Src\ff.c)(0x65960C86)()
+F (.\fatfs\Src\ff_gen_drv.c)(0x65960C86)()
+F (.\fatfs\Src\syscall.c)(0x65960C86)()
+F (.\fatfs\Src\user_diskio.c)(0x65960C86)()
+F (C:/Users/asion/AppData/Local/Arm/Packs/Keil/STM32F1xx_DFP/2.4.1/Device/StdPeriph_Driver/src/misc.c)(0x61AD876E)()
+F (C:/Users/asion/AppData/Local/Arm/Packs/Keil/STM32F1xx_DFP/2.4.1/Device/StdPeriph_Driver/src/stm32f10x_gpio.c)(0x61AD876E)()
+F (C:/Users/asion/AppData/Local/Arm/Packs/Keil/STM32F1xx_DFP/2.4.1/Device/StdPeriph_Driver/src/stm32f10x_rcc.c)(0x61AD876E)()
+F (C:/Users/asion/AppData/Local/Arm/Packs/Keil/STM32F1xx_DFP/2.4.1/Device/StdPeriph_Driver/src/stm32f10x_spi.c)(0x61AD876E)()
+F (C:/Users/asion/AppData/Local/Arm/Packs/Keil/STM32F1xx_DFP/2.4.1/Device/StdPeriph_Driver/src/stm32f10x_tim.c)(0x61AD876E)()
+F (C:/Users/asion/AppData/Local/Arm/Packs/Keil/STM32F1xx_DFP/2.4.1/Device/StdPeriph_Driver/src/stm32f10x_usart.c)(0x61AD876E)()
+F (RTE/Device/STM32F103C8/RTE_Device.h)(0x5FBFFB8A)()
+F (RTE/Device/STM32F103C8/startup_stm32f10x_md.s)(0x61AD24FE)()
+F (RTE/Device/STM32F103C8/stm32f10x_conf.h)(0x61AD24FE)()
+F (RTE/Device/STM32F103C8/system_stm32f10x.c)(0x61AD24FE)()

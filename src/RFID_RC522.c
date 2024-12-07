@@ -26,7 +26,7 @@ void Write_MFRC522(uchar addr, uchar val)
 {
 	/* CS LOW */
 	GPIO_ResetBits(MFRC522_CS_GPIO, MFRC522_CS_PIN);
-	RC522_SPI_Transfer((addr<<1)&0x7E);	
+	RC522_SPI_Transfer((addr<<1)&0x7E);	// bit 0 (0:write,1:read) bit 7:0
 	RC522_SPI_Transfer(val);
 	
 	/* CS HIGH */
@@ -39,6 +39,9 @@ void Write_MFRC522(uchar addr, uchar val)
  * Input: addr-- Adddresss of register to read data.
  * Return: Data read from register.
  */
+/*Thao tác	Ð?a ch? du?c g?i qua SPI	Gi?i thích
+GHI (WRITE)	0xxxxxx0 (MSB = 0, LSB = 0)	Bit 7 = 0: Thao tác ghi. Bit 0 = 0: Ðia ch hop le
+Ð?C (READ)	1xxxxxx0 (MSB = 1, LSB = 0)	Bit 7 = 1: Thao tác d?c. Bit 0 = 0: Ðia chi hop le.*/
 uchar Read_MFRC522(uchar addr)
 {
 	uchar val;
@@ -47,7 +50,7 @@ uchar Read_MFRC522(uchar addr)
 	GPIO_ResetBits(MFRC522_CS_GPIO, MFRC522_CS_PIN);
 
 	//Adddresss fomat:1XXXXXX0
-	RC522_SPI_Transfer(((addr<<1)&0x7E) | 0x80);	
+	RC522_SPI_Transfer(((addr<<1)&0x7E) | 0x80);	// bit 7 set len 1 : doc , 0 : write , bit 0 : 0 
 	val = RC522_SPI_Transfer(0x00);
 	
 	/* CS HIGH */
@@ -66,6 +69,7 @@ uchar Read_MFRC522(uchar addr)
  */
 void SetBitMask(uchar reg, uchar mask)  
 {
+	// vd :reg = 1111000; mask = 1111 1111
     uchar tmp;
     tmp = Read_MFRC522(reg);
     Write_MFRC522(reg, tmp | mask);  // set bit mask
@@ -97,7 +101,7 @@ void AntennaOn(void)
 
 	temp = Read_MFRC522(TxControlReg);
 
-	SetBitMask(TxControlReg, 0x03);
+	SetBitMask(TxControlReg, 0x03); // bit 0 & bit 1 set = 1 bat anten
 }
 
 
@@ -135,13 +139,16 @@ void MFRC522_Init(void)
 	MFRC522_Reset(); 
 	 	
 	//Timer: TPrescaler*TreloadVal/6.78MHz = 24ms
+	//0x8D: 10001101 trong do bit 7(tauto =1 tu dong khoi dong lai bo dem) bit 0-3 : cau hinh tan so timer
 	Write_MFRC522(TModeReg, 0x8D);		//Tauto=1; f(Timer) = 6.78MHz/TPreScaler
-	Write_MFRC522(TPrescalerReg, 0x3E);	//TModeReg[3..0] + TPrescalerReg
-	Write_MFRC522(TReloadRegL, 30);           
+	Write_MFRC522(TPrescalerReg, 0x3E);	//TModeReg[3..0] + TPrescalerReg 0x3E = 62
+	Write_MFRC522(TReloadRegL, 30);            //treloadreg = L+H= 30 + 0
 	Write_MFRC522(TReloadRegH, 0);
+  //timer = (62*30)/6.78 =274µs : la khoang time phu hop cho cac tac vu rc522  
 	
-	Write_MFRC522(TxAutoReg, 0x40);		//100%ASK
-	Write_MFRC522(ModeReg, 0x3D);		//CRC Gia tri ban dau 0x6363	???
+	
+	Write_MFRC522(TxAutoReg, 0x40);		//0x40 = 0100 0000  Bit 6 = 1 100% ASK (tin hieu hoan toan tat trong cac gian doan khong gui du lieu)
+	Write_MFRC522(ModeReg, 0x3D);		//Bit [3 - 0] =0xD tuong duong CRC =0x6363 theo tieu chuan iso 14443
 
 	//ClearBitMask(Status2Reg, 0x08);		//MFCrypto1On=0
 	//Write_MFRC522(RxSelReg, 0x86);		//RxWait = RxSelReg[5..0]
@@ -152,46 +159,62 @@ void MFRC522_Init(void)
 
 /*
  * Function name: MFRC522_ToCard.
- * Function: Communicate between RC522 and ISO14443???. 
- * Input: command-- Command write to RC522.
-		  sendData-- Data write to Card using RC522.
-		  sendLen-- The data length.
-		  backdata-- Data received back.
-		  backlen-- Bit length of data.
- * Return: MI_OK status if the process is successful.
+ * Function: giao tiep RC522 and ISO14443???. 
+ * Input: command-- lenh gui den MF522.
+		  sendData-- Du lieu gui den the bang MFRC522.
+		  sendLen-- Chieu dai du lieu gui .
+		  backdata-- Du lieu nhan duoc tro lai.
+		  backlen-- Tra ve do dai bit cua du lieu.
+ * Return: MI_OK neu thanh cong.
  */
 uchar MFRC522_ToCard(uchar command, uchar *sendData, uchar sendLen, uchar *backData, uint *backLen)
 {
-    uchar status = MI_ERR;
-    uchar irqEn = 0x00;
-    uchar waitIRq = 0x00;
-    uchar lastBits;
-    uchar n;
-    uint i;
+    uchar status = MI_ERR; // luu trang thai
+    uchar irqEn = 0x00;  // bit bat hoac tat ngat tuy thuoc vao thanh ghi lenh MF522 se co gia tri khac nhau (CommIEnReg)
+     
+	
+	/*waitIRq : bien nay dung de so sanh voi thanh ghi CommIEnReg xem da giao tiep thanh cong chua
+	 neu khong thay cac bit mong doi trong khoang thoi gian thi se la timeout*/
+	  uchar waitIRq = 0x00;// bit xac dinh co ngat mà vi dieu khien cho rc522 thiet lap khi giao tiep thanh cong
+    uchar lastBits; // luu tru thong tin ve so bit cuoi cung cua du lieu phan hoi rc522, xu ly du lieu phan hoi tu rc522 lay gia tri tu thanh ghi ControlReg 
+    uchar n; // xem co nhan du du lieu gui hoac nhan dc tu rc522 , so byte doc duoc tu thanh ghi FIFODataReg duoc luu vao bien n
+    uint i; // bien couter kiem tra trang thai ngat rc522, neu giao tiep vuot qua dieu kien timeout thì giao se that bai
 
     switch (command)
     {
         case PCD_AUTHENT:		//Xac nhan the gan
 		{
+			/*0x12 : 0001 0010 ; bit 4 :bao hieu ket thuc qua trinh; bit 1 : bao loi neu xac thuc that bai */
 			irqEn = 0x12;
-			waitIRq = 0x10;
+			/*0x10: 0001 0000 ; bit 4 : bao hieu hoan tat xac thuc*/
+			waitIRq = 0x10; 
 			break;
 		}
 		case PCD_TRANSCEIVE:	// Gui du lieu FIFO
 		{
+			/*0x77 : 0111 0111 
+			bit 6 : bao hoan thanh gui du lieu
+			bit 5: bao nhan du lieu xong
+			bit 4 : bao ket thuc qua trinh 
+			bt 3 : bao hieu FIFO gan day
+			bit 2 : bao hieu FIFO gan trong
+			bit 1 : bao loi qua trinh giao tiep*/
 			irqEn = 0x77;
+			/*0x30: 0011 0000
+			bit 5 :bao nhan du lieu tu the thanh cong
+      bit 4 : bao ket thuc truyen hoac nhan du lieu	*/
 			waitIRq = 0x30;
 			break;
 		}
 		default:
 			break;
     }
-   
-    Write_MFRC522(CommIEnReg, irqEn|0x80);	//Yeu cau ngat
-    ClearBitMask(CommIrqReg, 0x80);			//Clear tat ca cac bit yeu cau ngat
-    SetBitMask(FIFOLevelReg, 0x80);			//FlushBuffer=1, Khoi tao FIFO
+    // 0x80 :1000 0000
+    Write_MFRC522(CommIEnReg, irqEn|0x80);	//bit 7 = 1  cho phep cac ngat duoc bat
+    ClearBitMask(CommIrqReg, 0x80);//Clear tat ca cac bit yeu cau ngat de khong con ngat cu ton tai khi bat dau giao tiep
+    SetBitMask(FIFOLevelReg, 0x80);			//FlushBuffer=1 dung de xoa du lieu truoc do co trong FIFO, Khoi tao FIFO
     
-	Write_MFRC522(CommandReg, PCD_IDLE);	//NO action; Huy bo lenh hien hanh	???
+	Write_MFRC522(CommandReg, PCD_IDLE);	//NO action; Huy bo lenh hien hanh, dua thiet bi vao trang thai cho lenh moi	
 
 	// Ghi du lieu vao FIFO
     for (i=0; i<sendLen; i++)
@@ -203,7 +226,7 @@ uchar MFRC522_ToCard(uchar command, uchar *sendData, uchar sendLen, uchar *backD
 	Write_MFRC522(CommandReg, command);
     if (command == PCD_TRANSCEIVE)
     {    
-		SetBitMask(BitFramingReg, 0x80);		//StartSend=1,transmission of data starts  
+		SetBitMask(BitFramingReg, 0x80);		//StartSend=1, qua trinh truyen du lieu bat dau
 	}   
     
 	//Cho doi de nhan duoc du lieu day du
@@ -211,29 +234,33 @@ uchar MFRC522_ToCard(uchar command, uchar *sendData, uchar sendLen, uchar *backD
     do 
     {
 		//CommIrqReg[7..0]
-		//Set1 TxIRq RxIRq IdleIRq HiAlerIRq LoAlertIRq ErrIRq TimerIRq
+		/*Set1(bao trang thai cac bit ngat) TxIRq(hoan tat gui du lieu) RxIRq(nhan du lieu) IdleIRq(nhan roi)
+			HiAlerIRq LoAlertIRq ErrIRq(ngat do loi xay ra) TimerIRq(thoi gian het han)*/
         n = Read_MFRC522(CommIrqReg);
         i--;
     }
-    while ((i!=0) && !(n&0x01) && !(n&waitIRq));
+    while ((i!=0) && !(n&0x01) && !(n&waitIRq)); // khi i = 0 & TimerIRq = 1 & doi 1 trong 2 ngat la (0x10 hoac 0x30)
 
     ClearBitMask(BitFramingReg, 0x80);			//StartSend=0
 	
     if (i != 0)
     {    
-        if(!(Read_MFRC522(ErrorReg) & 0x1B))	//BufferOvfl Collerr CRCErr ProtecolErr
+			/*0x1B = 0b00011011 
+			bit 4 (BufferOvfl): tran bo dem FIFO, bit 3(Collerr):loi va cham, bit 1(CRCErr):loi CRC, bit 0 (ProtecolErr):loi giao thuc*/
+			if(!(Read_MFRC522(ErrorReg) & 0x1B)) // neu khong co cac loi tren thi dua trang thai ok
         {
             status = MI_OK;
-            if (n & irqEn & 0x01)
+					if (n & irqEn & 0x01) //0x01: 0000 0001 /  bit 0 (TimerIRq) : neu khong co the hoac khong co du lieu
             {   
-				status = MI_NOTAGERR;			//??   
+				status = MI_NOTAGERR;			//khong phat hien the hoac du lieu khi da het timeout  
 			}
 
             if (command == PCD_TRANSCEIVE)
             {
-               	n = Read_MFRC522(FIFOLevelReg);
-              	lastBits = Read_MFRC522(ControlReg) & 0x07;
-                if (lastBits)
+               	n = Read_MFRC522(FIFOLevelReg); // doc so luong byte du lieu trong FIFO
+							/*lastBits:neu du lieu day du 8 bit thi last bit = 0,neu last bit khong du 8 bit thi last bit khac 0 */
+              	lastBits = Read_MFRC522(ControlReg) & 0x07; // lay 3 bit cuoi cung 
+                if (lastBits) //khong du byte (khac 0)
                 {   
 					*backLen = (n-1)*8 + lastBits;   
 				}
@@ -242,7 +269,7 @@ uchar MFRC522_ToCard(uchar command, uchar *sendData, uchar sendLen, uchar *backD
 					*backLen = n*8;   
 				}
 
-                if (n == 0)
+                if (n == 0)// du byte
                 {   
 					n = 1;    
 				}
@@ -260,7 +287,7 @@ uchar MFRC522_ToCard(uchar command, uchar *sendData, uchar sendLen, uchar *backD
         }
         else
         {   
-			status = MI_ERR;  
+			status = MI_ERR; 
 		}
         
     }
@@ -288,17 +315,18 @@ uchar MFRC522_Request(uchar reqMode, uchar *TagType)
 	uchar status;  
 	uint backBits;			//cac bit du lieu nhan duoc
 
-	Write_MFRC522(BitFramingReg, 0x07);		//TxLastBists = BitFramingReg[2..0]	???
+	/*truyen 7 bit cuoi cua byte cuoi cung trong FIFO*/
+	Write_MFRC522(BitFramingReg, 0x07);		//TxLastBists = BitFramingReg[2..0]	
 	
-	TagType[0] = reqMode;
+	TagType[0] = reqMode; // chua 2 lenh : Request(kiem tra the trong vung doc) va Wake-Up(danh thuc the)
 	status = MFRC522_ToCard(PCD_TRANSCEIVE, TagType, 1, TagType, &backBits);
 
-	if ((status != MI_OK) || (backBits != 0x10))
+	if ((status != MI_OK) || (backBits != 0x10)) //kiem tra giao tiep cua the va phan hoi tu the co du 2 byte khong (16bit)
 	{    
 		status = MI_ERR;
 	}
    
-	return status;
+	return status; 
 }
 
 
@@ -311,17 +339,20 @@ uchar MFRC522_Request(uchar reqMode, uchar *TagType)
 uchar MFRC522_Anticoll(uchar *serNum)
 {
     uchar status;
-    uchar i;
-		uchar serNumCheck=0;
-    uint unLen;
+    uchar i; // bien vong lap
+		uchar serNumCheck=0; // kiem tra so serial
+    uint unLen; // do dai du lieu nhan tu the
     
 
     //ClearBitMask(Status2Reg, 0x08);		//TempSensclear
     //ClearBitMask(CollReg,0x80);			//ValuesAfterColl
-	Write_MFRC522(BitFramingReg, 0x00);		//TxLastBists = BitFramingReg[2..0]
+	Write_MFRC522(BitFramingReg, 0x00);		//TxLastBists = BitFramingReg[2..0] = 0, truyen toan bo du lieu bao gom byte cuoi cung
  
-    serNum[0] = PICC_ANTICOLL;
-    serNum[1] = 0x20;
+    serNum[0] = PICC_ANTICOLL; // gan lenh chong xung dot vao vi tri dau tien cua mang de gui toi rfrc522
+    serNum[1] = 0x20; // 0010 0000 // xu ly 5 byte uid
+	
+	/*yeu cau gui du lieu , sernum 1 chong xung dot,2 byte cua sernum, sau khi xu ly xong data se luu vao bien sernum 2,
+   va ghi do dai du lieu vao unlen  */
     status = MFRC522_ToCard(PCD_TRANSCEIVE, serNum, 2, serNum, &unLen);
 
     if (status == MI_OK)
@@ -329,9 +360,9 @@ uchar MFRC522_Anticoll(uchar *serNum)
 		//Kiem tra so serial the
 		for (i=0; i<4; i++)
 		{   
-		 	serNumCheck ^= serNum[i];
+		 	serNumCheck ^= serNum[i]; // luu so sernum vao sernumcheck bang phep xor
 		}
-		if (serNumCheck != serNum[i])
+		if (serNumCheck != serNum[i]) // kiem tra lai sernum
 		{   
 			status = MI_ERR;    
 		}
@@ -353,8 +384,8 @@ void CalulateCRC(uchar *pIndata, uchar len, uchar *pOutData)
 {
     uchar i, n;
 
-    ClearBitMask(DivIrqReg, 0x04);			//CRCIrq = 0
-    SetBitMask(FIFOLevelReg, 0x80);			//Con tro FIFO
+    ClearBitMask(DivIrqReg, 0x04);			//CRCIrq = 0 chuan bi cho viec tinh toan crc moi	
+    SetBitMask(FIFOLevelReg, 0x80);			//xoa du lieu trong bo dem FIFO va dat con tro ve trang thai dau
     //Write_MFRC522(CommandReg, PCD_IDLE);
 
 	//Ghi du lieu vao FIFO
@@ -368,10 +399,10 @@ void CalulateCRC(uchar *pIndata, uchar len, uchar *pOutData)
     i = 0xFF;
     do 
     {
-        n = Read_MFRC522(DivIrqReg);
+        n = Read_MFRC522(DivIrqReg); // doc tung gia tri cua thanh ghi
         i--;
     }
-    while ((i!=0) && !(n&0x04));			//CRCIrq = 1
+    while ((i!=0) && !(n&0x04));			//khi i het timeout va CRCIrq = 1
 
 	//Doc ket qua tinh toan CRC
     pOutData[0] = Read_MFRC522(CRCResultRegL);
@@ -395,22 +426,23 @@ uchar MFRC522_SelectTag(uchar *serNum)
 
 	//ClearBitMask(Status2Reg, 0x08);			//MFCrypto1On=0
 
-    buffer[0] = PICC_SElECTTAG;
-    buffer[1] = 0x70;
-    for (i=0; i<5; i++)
+    buffer[0] = PICC_SElECTTAG; // chon the
+	buffer[1] = 0x70;// do dai du lieu gui di (7 byte: lenh + uid + crc)
+    for (i=0; i<5; i++) 
     {
-    	buffer[i+2] = *(serNum+i);
+    	buffer[i+2] = *(serNum+i);// gui 5 byte vao uid buffer
     }
-	CalulateCRC(buffer, 7, &buffer[7]);		//??
+	CalulateCRC(buffer, 7, &buffer[7]);		//tinh toan crc 7 byte va luu vao buffer[7]
+		/*gui du lieu tu buffer den the, nhan phan hoi tu the luu vao buffer va so bit phan hoi vao recvbit*/
     status = MFRC522_ToCard(PCD_TRANSCEIVE, buffer, 9, buffer, &recvBits);
     
-    if ((status == MI_OK) && (recvBits == 0x18))
+    if ((status == MI_OK) && (recvBits == 0x18)) // neu satus ok va the phan hoi dung 24 bit
     {   
-		size = buffer[0]; 
+		size = buffer[0]; // gan loai the da chon vao size
 	}
     else
     {   
-		size = 0;    
+		size = 0;// (loi)
 	}
 
     return size;
@@ -436,19 +468,20 @@ uchar MFRC522_Auth(uchar authMode, uchar BlockAddr, uchar *Sectorkey, uchar *ser
 	uchar buff[12]; 
 
 	//Xac nhan lenh + Khoi dia chi + mat khau + so nhanh
-    buff[0] = authMode;
-    buff[1] = BlockAddr;
+    buff[0] = authMode; //xac thuc key A hoac B 
+    buff[1] = BlockAddr; // dia chi can xac thuc
     for (i=0; i<6; i++)
     {    
-		buff[i+2] = *(Sectorkey+i);   
+		buff[i+2] = *(Sectorkey+i);// luu mat khau vao buff(2..7)  
 	}
     for (i=0; i<4; i++)
     {    
-		buff[i+8] = *(serNum+i);   
+		buff[i+8] = *(serNum+i);// luu uid cua the vao buff(8..11)   
 	}
+		/*gui lenh xac thuc key va so sanh voi buff, nhan lai phan hoi rfid vao buff va luu so bit vao recvbit*/
     status = MFRC522_ToCard(PCD_AUTHENT, buff, 12, buff, &recvBits);
 
-    if ((status != MI_OK) || (!(Read_MFRC522(Status2Reg) & 0x08)))
+    if ((status != MI_OK) || (!(Read_MFRC522(Status2Reg) & 0x08)))// neu bit 0x08 khong duoc bat sau khi xac thuc
     {   
 		status = MI_ERR;   
 	}
@@ -468,12 +501,12 @@ uchar MFRC522_Read(uchar blockAddr, uchar *recvData)
     uchar status;
     uint unLen;
 
-    recvData[0] = PICC_READ;
-    recvData[1] = blockAddr;
-    CalulateCRC(recvData,2, &recvData[2]);
+    recvData[0] = PICC_READ;// doc du lieu the
+    recvData[1] = blockAddr;// dia chi block can doc
+    CalulateCRC(recvData,2, &recvData[2]);// tinh toan crc cho lenh doc sau do crc se luu vao recvData[2] va[3]
     status = MFRC522_ToCard(PCD_TRANSCEIVE, recvData, 4, recvData, &unLen);
 
-    if ((status != MI_OK) || (unLen != 0x90))
+    if ((status != MI_OK) || (unLen != 0x90))// khong nhan du lieu dung tu the
     {
         status = MI_ERR;
     }
@@ -495,12 +528,13 @@ uchar MFRC522_Write(uchar blockAddr, uchar *writeData)
     uchar i;
 		uchar buff[18]; 
     
-    buff[0] = PICC_WRITE;
-    buff[1] = blockAddr;
-    CalulateCRC(buff, 2, &buff[2]);
+    buff[0] = PICC_WRITE;//lenh ghi
+    buff[1] = blockAddr;// dia chi can ghi
+    CalulateCRC(buff, 2, &buff[2]);// tinh toan crc cho 2 byte tren va luu vao buff[2]
+	/*truyen di du lieu buff toi rfid voi 4 byte va cho phan hoi va so bit se luu vao recvbits*/
     status = MFRC522_ToCard(PCD_TRANSCEIVE, buff, 4, buff, &recvBits);
 
-    if ((status != MI_OK) || (recvBits != 4) || ((buff[0] & 0x0F) != 0x0A))
+    if ((status != MI_OK) || (recvBits != 4) || ((buff[0] & 0x0F) != 0x0A))// neu khac ok hoac so bit nhan khong dung hoac ma tra ve khac 0x0A trong byte dau cua buff
     {   
 		status = MI_ERR;   
 	}
@@ -511,10 +545,10 @@ uchar MFRC522_Write(uchar blockAddr, uchar *writeData)
         {    
         	buff[i] = *(writeData+i);   
         }
-        CalulateCRC(buff, 16, &buff[16]);
-        status = MFRC522_ToCard(PCD_TRANSCEIVE, buff, 18, buff, &recvBits);
+        CalulateCRC(buff, 16, &buff[16]);// tinh toan crc cua 16 byte du lieu va luu vao buff[16]
+        status = MFRC522_ToCard(PCD_TRANSCEIVE, buff, 18, buff, &recvBits);// gui du lieu vao the voi buff voi 18 byte va luu so bit phan hoi lai vao recvbits
         
-		if ((status != MI_OK) || (recvBits != 4) || ((buff[0] & 0x0F) != 0x0A))
+		if ((status != MI_OK) || (recvBits != 4) || ((buff[0] & 0x0F) != 0x0A)) // kiem tra lai lan nua
         {   
 			status = MI_ERR;   
 		}
@@ -526,7 +560,7 @@ uchar MFRC522_Write(uchar blockAddr, uchar *writeData)
 
 /*
  * Ten ham:MFRC522_Halt
- * CHuc nang: Dua the vao ngu dong
+ * CHuc nang: Dua the vao ngu dong ngung giao tiep
  * Input: Khong
  * Tra ve: Khong
  */
@@ -537,9 +571,9 @@ void MFRC522_Halt(void)
 
 	buff[0] = PICC_HALT;
 	buff[1] = 0;
-	CalulateCRC(buff, 2, &buff[2]);
+	CalulateCRC(buff, 2, &buff[2]);// tinh toan crc va luu ket qua vao buff[2] va [3]
  
-	MFRC522_ToCard(PCD_TRANSCEIVE, buff, 4, buff,&unLen);
+	MFRC522_ToCard(PCD_TRANSCEIVE, buff, 4, buff,&unLen);// gui du lieu 4 byte tu mfrc522 toi the va doi phan hoi,mfrc522 nhan du lieu va luu vao buff so bit se luu vao unlen
 }
 void MFRC522_StopCrypto1(void){
 	// Clear MFCrypto1On bit

@@ -50,73 +50,73 @@
 
 //------------------Thanh ghi MFRC522---------------
 //Page 0:Command and Status
-#define     Reserved00            0x00    
-#define     CommandReg            0x01    
-#define     CommIEnReg            0x02    
-#define     DivlEnReg             0x03    
-#define     CommIrqReg            0x04    
-#define     DivIrqReg             0x05
-#define     ErrorReg              0x06    
-#define     Status1Reg            0x07    
-#define     Status2Reg            0x08    
-#define     FIFODataReg           0x09
-#define     FIFOLevelReg          0x0A
-#define     WaterLevelReg         0x0B
-#define     ControlReg            0x0C
-#define     BitFramingReg         0x0D
-#define     CollReg               0x0E
-#define     Reserved01            0x0F
+#define     Reserved00            0x00    //Khong su dung , danh rieng cho muc dich noi bo
+#define     CommandReg            0x01    // dung de gui lenh dieu khien ( Reset, Transceive, Authenticate)
+#define     CommIEnReg            0x02    // bat hoac tat cac ngat giao tiep
+#define     DivlEnReg             0x03    // bat hoac tat ngat chia tan so
+#define     CommIrqReg            0x04    // xem cac trang thai ngat giao tiep
+#define     DivIrqReg             0x05    // xem cac trang thai ngat tu bo chia tan so
+#define     ErrorReg              0x06    // chi ra loi xay ra trong giao tiep (CRC)
+#define     Status1Reg            0x07    // bao trang thai tong quat ( dang hoat dong, FIFO day...)
+#define     Status2Reg            0x08    //Báo trang thái chi tiet hon (toc do truyen...)
+#define     FIFODataReg           0x09    //Thanh ghi truy cap du lieu FIFO
+#define     FIFOLevelReg          0x0A     // Báo so byte hien tai trong FIFO
+#define     WaterLevelReg         0x0B    // Nguong kích hoat canh báo FIFO d?y
+#define     ControlReg            0x0C     // luu tru bit cuoi cung va che do tiet kiem nang luong
+#define     BitFramingReg         0x0D    // Ðieu chinh dinh dang bit cho truy?n/nh?n
+#define     CollReg               0x0E     // Báo va cham khi nhieu the duoc phát hien cùng lúc
+#define     Reserved01            0x0F    // khong su dung
 //Page 1:Command     
-#define     Reserved10            0x10
-#define     ModeReg               0x11
-#define     TxModeReg             0x12
-#define     RxModeReg             0x13
-#define     TxControlReg          0x14
-#define     TxAutoReg             0x15
-#define     TxSelReg              0x16
-#define     RxSelReg              0x17
-#define     RxThresholdReg        0x18
-#define     DemodReg              0x19
-#define     Reserved11            0x1A
-#define     Reserved12            0x1B
-#define     MifareReg             0x1C
-#define     Reserved13            0x1D
-#define     Reserved14            0x1E
-#define     SerialSpeedReg        0x1F
+#define     Reserved10            0x10  // khong su dung
+#define     ModeReg               0x11  //Chon che do hoat dong cua RC522
+#define     TxModeReg             0x12  //Thiet lap che do truyen (toc do, chuan giao thuc).
+#define     RxModeReg             0x13  //Thiet lap che do nhan (tuong tu TxModeReg)
+#define     TxControlReg          0x14  //Bat/tat các chân phát sóng RF.
+#define     TxAutoReg             0x15   // Ðieu khien tu dong hóa truyen RF
+#define     TxSelReg              0x16   // Chon dau ra RF
+#define     RxSelReg              0x17   // Chon dau vào RF
+#define     RxThresholdReg        0x18   // Nguong nhan tín hieu (phát hien the)
+#define     DemodReg              0x19   // Ðieu chinh bo giai dieu che
+#define     Reserved11            0x1A   // khong su dung
+#define     Reserved12            0x1B  // khong su dung
+#define     MifareReg             0x1C  // Cài d?t giao th?c MIFARE
+#define     Reserved13            0x1D  // khong su dung
+#define     Reserved14            0x1E  // khong su dung
+#define     SerialSpeedReg        0x1F  //  Thiet lap toc do truyen du lieu.
 //Page 2:CFG    
-#define     Reserved20            0x20  
-#define     CRCResultRegM         0x21
-#define     CRCResultRegL         0x22
-#define     Reserved21            0x23
-#define     ModWidthReg           0x24
-#define     Reserved22            0x25
-#define     RFCfgReg              0x26
-#define     GsNReg                0x27
-#define     CWGsPReg	          0x28
-#define     ModGsPReg             0x29
-#define     TModeReg              0x2A
-#define     TPrescalerReg         0x2B
-#define     TReloadRegH           0x2C
-#define     TReloadRegL           0x2D
-#define     TCounterValueRegH     0x2E
-#define     TCounterValueRegL     0x2F
+#define     Reserved20            0x20 // khong su dung  
+#define     CRCResultRegM         0x21 // Byte cao cua ket qua CRC
+#define     CRCResultRegL         0x22 // Byte thap cua ket qua CRC.
+#define     Reserved21            0x23 // khong su dung
+#define     ModWidthReg           0x24 // Ðieu chinh do rong tín hieu RF
+#define     Reserved22            0x25 // khong su dung 
+#define     RFCfgReg              0x26 //dieu chinh do manh tin hieu RF
+#define     GsNReg                0x27 // Cài dat do loi (gain)
+#define     CWGsPReg	          0x28  //Ðieu chinh cuong do sóng mang RF
+#define     ModGsPReg             0x29 //Ðieu chinh cuong do tín hieu dieu che
+#define     TModeReg              0x2A //Che do hen gio
+#define     TPrescalerReg         0x2B //Cài dat bo chia tan so cho hen gio	
+#define     TReloadRegH           0x2C //Byte cao cua giá tri tai lai hen gio.
+#define     TReloadRegL           0x2D // Byte thap cua giá tri tai lai hen gio.
+#define     TCounterValueRegH     0x2E // Byte cao cua bo dem hen gio
+#define     TCounterValueRegL     0x2F // Byte thap cua bo dem hen gio
 //Page 3:TestRegister     
-#define     Reserved30            0x30
-#define     TestSel1Reg           0x31
-#define     TestSel2Reg           0x32
-#define     TestPinEnReg          0x33
-#define     TestPinValueReg       0x34
-#define     TestBusReg            0x35
-#define     AutoTestReg           0x36
-#define     VersionReg            0x37
-#define     AnalogTestReg         0x38
-#define     TestDAC1Reg           0x39  
-#define     TestDAC2Reg           0x3A   
-#define     TestADCReg            0x3B   
-#define     Reserved31            0x3C   
-#define     Reserved32            0x3D   
-#define     Reserved33            0x3E   
-#define     Reserved34			  		0x3F
+#define     Reserved30            0x30 // khong su dung
+#define     TestSel1Reg           0x31 // Chon tín hieu kiem tra.
+#define     TestSel2Reg           0x32 // Chon tín hieu kiem tra bo sung
+#define     TestPinEnReg          0x33 // Kích hoat tín hieu kiem tra ra chân pin
+#define     TestPinValueReg       0x34 // Gán giá tri tín hieu kiem tra ra pin
+#define     TestBusReg            0x35 // kiem tra bus tin hieu
+#define     AutoTestReg           0x36 //Kích hoat kiem tra tu d?ng
+#define     VersionReg            0x37 // Phiên ban cua RC522.
+#define     AnalogTestReg         0x38 // Ki?m tra tín hieu tuong tu
+#define     TestDAC1Reg           0x39   // Cài dat cho bo DAC 1.
+#define     TestDAC2Reg           0x3A   // Cài dat cho bo DAC 2.
+#define     TestADCReg            0x3B   //Kiem tra ADC
+#define     Reserved31            0x3C   // khong su dung
+#define     Reserved32            0x3D   // khong su dung
+#define     Reserved33            0x3E   // khong su dung
+#define     Reserved34			  		0x3F   // khong su dung
 
 void MFRC522_Init(void);
 uchar MFRC522_Request(uchar reqMode, uchar *TagType);
